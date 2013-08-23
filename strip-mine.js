@@ -2,7 +2,7 @@
 
 module.exports = {
     mine : function(options){
-        var Miner = require('./miner');
+        var Miner = module.exports.Miner || (module.exports.Miner = require('./miner'));
         var miner = new Miner(options);
         return miner;
     },

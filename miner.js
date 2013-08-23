@@ -1,6 +1,7 @@
 #!/usr/bin/env node
 
 var request = require('request'); //url fetch lib
+var fs = require('fs');
 
 var libs = {};
 
@@ -84,6 +85,7 @@ DOM.value = function(node){
     if(node.val) return node.val();
     if(node.data) return node.data;
     if(node.value) return node.value;
+    //if(node.children && node.children[0] && node.children[0].type=='text' && node.children[0].data.trim()) return node.children[0].data;
     return node.nodeValue || '';
 };
 DOM.html = function(node, $){
@@ -124,6 +126,11 @@ if(!Array.prototype.forEachEmission) Array.prototype.forEachEmission = function(
 var lastFetch = Date.now();
 var fetchDelayInMs = 0;
 var pageIndex = {};
+
+var log = function(type, message){
+    console.log('LOG:', message);
+}
+
 function getPage(url, callback){
     var id = DOM.hash(JSON.stringify(url));
     if(pageIndex[id]){
@@ -135,24 +142,28 @@ function getPage(url, callback){
                 fs.writeFile(Miner.webcache+id+'.html', data, function(err) {
                     if(err) console.log('ERROR', err);
                     callback(null, pageIndex[id]);
-                    
                 });
             }
         }
         function fetch(){
+            log('event', '[WEB FETCHED] '+(url.split('?')[0]));
             var now = Date.now();
-            setTimeout(function(){
+            //setTimeout(function(){
                 request.get( url ,function(error, response, body){
                     if(!error) save(body);
                     callback(error, body);
                 });
-            }, Math.max(now - (lastFetch+fetchDelayInMs), 0));
+            //}, Math.max(now - (lastFetch+fetchDelayInMs), 0));
             lastFetch = now;
         }
         if(Miner.webcache){
-            fs.readFile(stateFile, function(err, data) {
+            fs.readFile(Miner.webcache+id+'.html', function(err, data) {
                 if(err) fetch();
-                else save();
+                else{
+                    log('event', '[CACHE FETCHED] '+(url.split('?')[0]), data);
+                    pageIndex[id] = data;
+                    callback(null, pageIndex[id]);
+                }
             });
         }else{
             fetch();
