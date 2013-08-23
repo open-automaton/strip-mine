@@ -18,6 +18,10 @@ Foreman
 -----
 coming soon
 
+Inspector
+-----
+coming soon
+
 Testing
 -----
 The Mocha is still brewing

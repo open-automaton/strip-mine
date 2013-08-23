@@ -1,0 +1,42 @@
+{
+    "name": "strip-mine",
+    "homepage": "https://github.com/khrome/strip-mine",
+    "version": "0.0.1-alpha",
+    "main": "strip-mine.js",
+    "description": "A scraping toolkit with normalized syntax for scrape engines, range iteration, distributed processing, caching and memory isolation.",
+    "keywords": [
+        "scraping",
+        "webscraping",
+        "datamining"
+    ],
+    "author": "Abbey Hawk Sparrow <@khrome> (http://patternweaver.com)",
+    "contributors": [],
+    "bugs": {
+        "url": "https://github.com/khrome/strip-mine/issues"
+    },
+    "license": "GPL",
+    "repository": {
+        "type": "git",
+        "url": "git@github.com:khrome/strip-mine.git"
+    },
+    "dependencies": {
+        "child_process" : "*",
+        "request" : "*",
+        "node-uuid" : "*",
+        "libxmljs" : "*",
+        "querystring" : "*",
+        "commander" : "*",
+        "ascii-art" : "*"
+    },
+    "devDependencies": {
+    },
+    "optionalDependencies": {
+        "cheerio" : "*",
+        "jsdom" : "*",
+        "ncurses":"*",
+        "node-phantom" : "*"
+    },
+    "engines": {
+        "node": "*"
+    }
+}
