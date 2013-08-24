@@ -15,7 +15,7 @@ function missingResource(uri) {
 
 var spawnScraper;
 
-var app = require('http').createServer(function handler (req, res) {
+/*var app = require('http').createServer(function handler (req, res) {
     var uri = url.parse(req.url,true);
     res.writeHead(200);
     var type = uri.pathname.lastIndexOf('.') != -1 ? uri.pathname.substring(uri.pathname.lastIndexOf('.')+1) : '!';
@@ -74,22 +74,38 @@ var fs = require('fs')
 app.listen(80);
 
 io.set('log level', 1);
+io.sockets.on('connection', function (socket) {
+    socket.on('spawn', function(data){ //from robots
+        
+    });
+    socket.on('action', function(data){ //from clients
+        
+    });
+});
+ //*/
 
 var cp = require('child_process');
 var uuid = require('node-uuid');
 
 
 function Scraper(options){
-    this.fork = cp.fork('./excavate.js');
+    this.options = options;
+    this.fork = cp.fork('./excavate.js'); //there's always a local scrape process
     var ob = this;
     this.fork.on('message', function(message) {
+        console.log('M', message.type)
         if(ob.handlers[message.type]) ob.handlers[message.type].forEach(function(handler){
-            ob.handler(message.data, message.id);
+            console.log('M-handle')
+            handler(message.data, message.id);
         });
     });
     this.handlers = {};
+    this.on('error', function(){
+        console.log('error')
+    })
 };
 Scraper.prototype.scrape = function(options, callback){
+    if(this.options.cache && !options.webcache) options.webcache = this.options.cache;
     this.emitAsync('scrape', options, callback);
 }
 Scraper.prototype.emitAsync = function(event, options, callback){
@@ -112,6 +128,7 @@ Scraper.prototype.emit = function(event, data, id){
     });
 }
 Scraper.prototype.on = function(event, callback){
+    console.log('added event', event);
     if(!this.handlers[event]) this.handlers[event] = [];
     this.handlers[event].push(callback);
 }
@@ -120,22 +137,7 @@ Scraper.prototype.off = function(event, callback){
         this.handlers[event].splice(this.handlers[event].indexOf(callback), 1);
     }
 }
+module.exports = Scraper;
 
-io.sockets.on('connection', function (socket) {
-    socket.on('spawn', function(data){ //from robots
-        
-    });
-    socket.on('action', function(data){ //from clients
-        
-    });
-});
-
-var scraper = new Scraper({});
-scraper.scrape({
-    type : 'aetna',
-    doctor : 'primary'
-}, function(data){
-    console.log('results', data);
-});
 
 

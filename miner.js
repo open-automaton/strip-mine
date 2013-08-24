@@ -128,7 +128,7 @@ var fetchDelayInMs = 0;
 var pageIndex = {};
 
 var log = function(type, message){
-    console.log('LOG:', message);
+    //console.log('LOG:', message);
 }
 
 function getPage(url, callback){
@@ -269,14 +269,12 @@ Miner.prototype.dole = function(job){
 
 Miner.webcache = false;
 
-Miner.directory = './';
+Miner.directory = process.cwd()+'/' || './';
 
 Miner.prototype.start = function(callback){
     var ob = this;
     this.options.initialize(this, function(){
-        //console.log('inited');
         var results = [];
-        //console.log('work', ob.work);
         ob.work.forEachEmission(function(job, index, done){
             var vein = new Lode(ob.options, job);
             vein.mine(job, ob, function(ore){
@@ -307,15 +305,20 @@ function Lode(progenitor, options){
     this.options = options;
     if(typeof progenitor == 'function'){
         this.parent = progenitor;
-        this.work = parent.mine;
+        this.work = this.parent.mine;
     }else{
         if(progenitor.mine) this.work = progenitor.mine;
     }
 }
 
 Lode.prototype.mine = function(job, miner, callback){
+    var i = require('node-uuid').v1();
+    var done = false;
     this.work(this, DOM, miner, job, function(results){
-        callback(results);
+        if(!done){
+            callback(results);
+            done = true;
+        }
     })
 }
 var url = require('url');
