@@ -2,6 +2,7 @@
 
 var request = require('request'); //url fetch lib
 var fs = require('fs');
+var util = require('./util');
 
 var libs = {};
 
@@ -107,22 +108,6 @@ DOM.hash = function(value){
     return libs.crypto.createHash('md5').update(value).digest("hex");
 };
 
-if(!Array.prototype.forEachEmission) Array.prototype.forEachEmission = function(callback, complete){
-    var a = {count : 0};
-    var collection = this;
-    var fn = function(collection, callback, complete){
-        if(a.count >= collection.length){
-            if(complete) complete();
-        }else{
-            callback(collection[a.count], a.count, function(){
-                a.count++;
-                fn(collection, callback, complete);
-            });
-        }
-    };
-    fn(collection, callback, complete);
-};
-
 var lastFetch = Date.now();
 var fetchDelayInMs = 0;
 var pageIndex = {};
@@ -139,9 +124,20 @@ function getPage(url, callback){
         function save(data){
             pageIndex[id] = data;
             if(Miner.webcache){
-                fs.writeFile(Miner.webcache+id+'.html', data, function(err) {
-                    if(err) console.log('ERROR', err);
-                    callback(null, pageIndex[id]);
+                fs.exists(Miner.webcache+id.substring(0,2)+'/', function(exists){
+                    if(!exists){
+                        fs.mkdir(Miner.webcache+id.substring(0,2)+'/', function(){
+                            fs.writeFile(Miner.webcache+id.substring(0,2)+'/'+id.substring(2)+'.html', data, function(err) {
+                                if(err) console.log('ERROR', err);
+                                callback(null, pageIndex[id]);
+                            });
+                        });
+                    }else{
+                        fs.writeFile(Miner.webcache+id.substring(0,2)+'/'+id.substring(2)+'.html', data, function(err) {
+                            if(err) console.log('ERROR', err);
+                            callback(null, pageIndex[id]);
+                        });
+                    }
                 });
             }
         }
@@ -171,64 +167,6 @@ function getPage(url, callback){
     }
 }
 
-if(Array.prototype.forAllEmissions) Array.prototype.forAllEmissions = function(callback, complete){
-    var a = {count : 0};
-    var collection = this;
-    var begin = function(){
-        a.count++;
-    };
-    var finish = function(){
-        a.count--;
-        if(a.count == 0 && complete) complete();
-    };
-    object.forEach(collection, function(value, key){
-        begin();
-        callback(value, key, function(){
-           finish(); 
-        });
-    });
-};
-
-function computeCombinations(data){
-    var combinations = {};
-    var results = [];
-    var noArrays = true;
-    Object.keys(data).forEach(function(key){
-        var item = data[key];
-        if(typeof item == 'object'){
-            noArrays = false;
-            //either an id (a range)
-            try{
-                if(item.length != 2) throw('array not 2 long, skip to iterator');
-                var lower = parseInt(item[0]);
-                var upper = parseInt(item[1]);
-                for(var lcv=lower; lcv < upper; lcv++){
-                    (function(){
-                        var copy = JSON.parse(JSON.stringify(data));
-                        copy[key] = lcv;
-                        var combinations = computeCombinations(copy);
-                        combinations.forEach(function(item){
-                            results.push(item);
-                        });
-                    })();
-                }
-            //or a fixed set
-            }catch(ex){
-                item.forEach(function(value){
-                    var copy = JSON.parse(JSON.stringify(data));
-                    copy[key] = value;
-                    var combinations = computeCombinations(copy);
-                    combinations.forEach(function(item){
-                        results.push(item);
-                    });
-                });
-            }
-        }
-    });
-    if(noArrays) results.push(data);
-    return results;
-}
-
 
 function Miner(options){
     this.options = options;
@@ -253,7 +191,7 @@ function Miner(options){
 }
 
 Miner.prototype.blueprint = function(data){
-    return computeCombinations(data);
+    return util.combinations(data);
 }
 
 Miner.prototype.accept = function(job){
@@ -262,9 +200,14 @@ Miner.prototype.accept = function(job){
 
 Miner.prototype.dole = function(job){
     var ob = this;
-    this.blueprint(job).forEach(function(activity){
+    var plan = this.blueprint(job);
+    plan.forEach(function(activity){
         ob.accept(activity);
-    })
+    });
+}
+
+Miner.prototype.emit = function(type, data){
+    
 }
 
 Miner.webcache = false;
@@ -282,6 +225,7 @@ Miner.prototype.start = function(callback){
                 ore.forEach(function(nugget){
                     results.push(nugget);
                 });
+                ob.emit('job-done', job, ore);
                 done();
             })
         }, function(){
