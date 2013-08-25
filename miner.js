@@ -277,6 +277,7 @@ Miner.prototype.start = function(callback){
         var results = [];
         ob.work.forEachEmission(function(job, index, done){
             var vein = new Lode(ob.options, job);
+            console.log('JOB', job);
             vein.mine(job, ob, function(ore){
                 ore.forEach(function(nugget){
                     results.push(nugget);
