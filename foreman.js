@@ -6,7 +6,6 @@ var url = require('url');
 var fs = require('fs');
 var util = require('./util');
 var clone = require('clone');
-require('./util');
 
 function endsWith(str, suffix) {
     return str.indexOf(suffix, str.length - suffix.length) !== -1;
@@ -36,6 +35,7 @@ Scraper.prototype.scrape = function(options, callback){
     if(this.options.cache && !options.webcache) options.webcache = this.options.cache;
     var ob = this;
     var mergedData = [];
+    //forAllEmissionsInPool
     jobs.forEachEmission(function(job, index, done){
         var optCopy = clone(options);
         optCopy.data = job;

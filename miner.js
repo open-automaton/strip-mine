@@ -2,6 +2,7 @@
 
 var request = require('request'); //url fetch lib
 var fs = require('fs');
+var clone = require('clone');
 var util = require('./util');
 
 var libs = {};
@@ -153,7 +154,7 @@ function getPage(url, callback){
             lastFetch = now;
         }
         if(Miner.webcache){
-            fs.readFile(Miner.webcache+id+'.html', function(err, data) {
+            fs.readFile(Miner.webcache+id.substring(0,2)+'/'+id.substring(2)+'.html', function(err, data) {
                 if(err) fetch();
                 else{
                     log('event', '[CACHE FETCHED] '+(url.split('?')[0]), data);
@@ -273,10 +274,12 @@ Lode.prototype.navigateTo = function(options, callback){
     if(!options) options = {};
     if(typeof options == 'string') options = {url : options};
     var uri = url.parse(options.url);
-    if(options.get){
+    if(options.get && !options.suppress){
         uri.query = options.get;
+        options.url = url.format(uri);
     }
-    options.url = url.format(uri);
+    //console.log('URL', DOM.hash(options.url));
+    log('event', uri.host+uri.pathname+' page '+(options.page || 1));
     var ob = this;
     getPage(options.url, function(error, html){
         DOM(html, function(selector, document, window){
@@ -286,7 +289,35 @@ Lode.prototype.navigateTo = function(options, callback){
             newState.window = window;
             newState.html = html;
             ob.lastSelector = selector;
-            callback(newState);
+            var collectPageData = function(add, getResults, allDone, newOpts, $){
+                options = newOpts?newOpts:options;
+                var url;
+                if(options.next && (url = options.next($||selector, DOM, options.url))){
+                    var opts = clone(options);
+                    opts.url = url;
+                    opts.page = opts.page?opts.page+1:2;
+                    opts.suppress = true;
+                    if(!opts.additional) opts.additional = function additional(nextAdd, nextResults, newDone){
+                        var res = nextResults();
+                        res.forEach(function(result){
+                            add(result);
+                        })
+                        if(this.lastLength != res.length) collectPageData(add, getResults, allDone, opts.additional.opts, opts.additional.selector);
+                        else allDone([]);
+                        this.lastLength = res.length;
+                    }
+                    opts.additional.opts = opts;
+                    if(options.url == opts.url){ //fix for repeating last page bug... needed?
+                        console.log('repeatFix', DOM.hash(options.url))
+                        return allDone([]);
+                    }else{
+                        ob.navigateTo(opts, callback);
+                    }
+                }else allDone([]);
+            };
+            (options.additional || collectPageData).selector = selector;
+            
+            callback(newState, options.additional || collectPageData);
         });
     });
     }catch(ex){

@@ -34,6 +34,34 @@ if(Array.prototype.forAllEmissions) Array.prototype.forAllEmissions = function(c
     });
 };
 
+if(Array.prototype.forAllEmissionsInPool) Array.prototype.forAllEmissionsInPool = function(poolSize, callback, complete){
+    var a = {count : 0};
+    var collection = this;
+    var queue = [];
+    var activeCount = 0;
+    var begin = function(action){
+        a.count++;
+        if(activeCount >= poolSize){
+            queue.push(action)
+        }else{
+            action();
+        }
+    };
+    var finish = function(){
+        a.count--;
+        if(queue.length > 0){
+            queue.shift()();
+        }else if(a.count == 0 && complete) complete();
+    };
+    object.forEach(collection, function(value, key){
+        begin(function(){
+            callback(value, key, function(){
+               finish(); 
+            });
+        });
+    });
+};
+
 var ob_id = function(ob){
     var id = '';
     Object.keys(ob).forEach(function(key){
