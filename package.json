@@ -1,7 +1,7 @@
 {
     "name": "strip-mine",
     "homepage": "https://github.com/khrome/strip-mine",
-    "version": "0.0.3-alpha",
+    "version": "0.0.4-alpha",
     "main": "strip-mine.js",
     "description": "A scraping toolkit with normalized syntax for scrape engines, range iteration, distributed processing, caching and memory isolation.",
     "keywords": [
