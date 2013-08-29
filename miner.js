@@ -7,6 +7,23 @@ var util = require('./util');
 
 var libs = {};
 
+Object.forEach = function(ob, cb){
+    Object.keys(ob).forEach(function(key){
+        cb(ob[key], key);
+    });
+}
+
+Object.interleave = function(data, ob){
+    ob = clone(ob);
+    Object.forEach(data, function(item, key){
+        if(typeof item == 'object' && typeof ob[key] == 'object') ob[key] = Object.interleave(item, ob[key]);
+        else{
+            if((!ob[key])) ob[key] = item;
+        }
+    });
+    return ob;
+};
+
 function DOM(html, callback){
     switch(DOM.engine){
         case 'jsdom':
@@ -29,7 +46,7 @@ function DOM(html, callback){
                     var nodes = [];
                     [].forEach.call(this, function(node){
                         node.children.forEach(function(childNode){
-                            childNode.innerHTML = childNode.data; //for compatible code
+                            //childNode.innerHTML = childNode.data; //for compatible code
                             nodes.push(childNode);
                         });
                     });
@@ -113,9 +130,7 @@ var lastFetch = Date.now();
 var fetchDelayInMs = 0;
 var pageIndex = {};
 
-var log = function(type, message){
-    //console.log('LOG:', message);
-}
+var log;
 
 function getPage(url, callback){
     var id = DOM.hash(JSON.stringify(url));
@@ -143,7 +158,7 @@ function getPage(url, callback){
             }
         }
         function fetch(){
-            log('event', '[WEB FETCHED] '+(url.split('?')[0]));
+            log('event', '[WEB FETCHED] '+(url.split('?')[0]), 3);
             var now = Date.now();
             //setTimeout(function(){
                 request.get( url ,function(error, response, body){
@@ -157,7 +172,7 @@ function getPage(url, callback){
             fs.readFile(Miner.webcache+id.substring(0,2)+'/'+id.substring(2)+'.html', function(err, data) {
                 if(err) fetch();
                 else{
-                    log('event', '[CACHE FETCHED] '+(url.split('?')[0]), data);
+                    log('event', '[CACHE FETCHED] '+(url.split('?')[0]), 3);
                     pageIndex[id] = data;
                     callback(null, pageIndex[id]);
                 }
@@ -189,6 +204,10 @@ function Miner(options){
     if(options.complete){
         this.start(options.complete);
     }
+}
+log = function(type, message, level){
+    if(!level) level = 1;
+    if(Miner.log_level >= level) console.log('    ', message);
 }
 
 Miner.prototype.blueprint = function(data){
@@ -237,6 +256,7 @@ Miner.prototype.start = function(callback){
     
 }
 
+Miner.log_level = 1;
 Miner.prototype.queue = function(options){
     
 }
@@ -279,7 +299,7 @@ Lode.prototype.navigateTo = function(options, callback){
         options.url = url.format(uri);
     }
     //console.log('URL', DOM.hash(options.url));
-    log('event', uri.host+uri.pathname+' page '+(options.page || 1));
+    log('event', uri.host+uri.pathname+' page '+(options.page || 1), 2);
     var ob = this;
     getPage(options.url, function(error, html){
         DOM(html, function(selector, document, window){
@@ -289,7 +309,7 @@ Lode.prototype.navigateTo = function(options, callback){
             newState.window = window;
             newState.html = html;
             ob.lastSelector = selector;
-            var collectPageData = function(add, getResults, allDone, newOpts, $){
+            /*var collectPageData = function(add, getResults, allDone, newOpts, $){
                 options = newOpts?newOpts:options;
                 var url;
                 if(options.next && (url = options.next($||selector, DOM, options.url))){
@@ -298,6 +318,7 @@ Lode.prototype.navigateTo = function(options, callback){
                     opts.page = opts.page?opts.page+1:2;
                     opts.suppress = true;
                     if(!opts.additional) opts.additional = function additional(nextAdd, nextResults, newDone){
+                        if(opts.additional.opts.url == opts.additional.parentURL) return allDone([]); //more repeating fixes
                         var res = nextResults();
                         res.forEach(function(result){
                             add(result);
@@ -307,21 +328,22 @@ Lode.prototype.navigateTo = function(options, callback){
                         this.lastLength = res.length;
                     }
                     opts.additional.opts = opts;
-                    if(options.url == opts.url){ //fix for repeating last page bug... needed?
-                        console.log('repeatFix', DOM.hash(options.url))
+                    opts.additional.parentURL = options.url;
+                    if(options.url == opts.url){ //fix for repeating last page bug
+                        log('event', 'repeatFix: '+DOM.hash(options.url), 2);
                         return allDone([]);
                     }else{
                         ob.navigateTo(opts, callback);
                     }
                 }else allDone([]);
             };
-            (options.additional || collectPageData).selector = selector;
+            (options.additional || collectPageData).selector = selector;*/
             
-            callback(newState, options.additional || collectPageData);
+            callback(newState);
         });
     });
     }catch(ex){
-        //console.log('ERROR', ex);
+        console.log('ERROR', ex);
         throw(ex);
     }
 };
@@ -336,6 +358,27 @@ Lode.prototype.html = function(selector, callback){
     var result = this.$(selector);
     if(callback) callback(result);
     return result;
+}
+
+Lode.prototype.batches = function(options, batchSelector, action, callback){ //compute variants based on the current state (IE paging)
+    var ob = this;
+    this.navigateTo(options, function(){
+        var count = 0;
+        action(options, function(selector){
+            batchSelector(selector, DOM, function(batches){
+                if(batches.length) batches.forEach(function(batch){ 
+                    var opts = Object.interleave(options, batch);
+                    count++;
+                    log('event', '[BATCH] '+opts.batch, 2);
+                    action(opts, function(){
+                        count--;
+                        if(callback && count == 0) callback();
+                    })
+                });
+                else callback(); //no batches
+            });
+        });
+    });
 }
 
 Lode.prototype.text = function(selector, callback){
