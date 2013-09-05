@@ -33,7 +33,9 @@ module.exports = {
                 case 'scrape' : 
                     var options = message.data || {};
                     if(options.cache) Miner.webcache = options.cache; //kind of a dumb way to do this
+                    if(message.log_level) Miner.log_level = message.log_level;
                     var miner = new Miner(options);
+                    if(options.proxy) miner.proxy = options.proxy;
                     miner.start(function(data){
                         process.send({
                             type : 'scrape-return',

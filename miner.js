@@ -131,8 +131,13 @@ var fetchDelayInMs = 0;
 var pageIndex = {};
 
 var log;
+var j = request.jar(); //cookies
+var count = 0;
 
-function getPage(url, callback){
+var fetchDelayInMs = 1000;
+var lastFetch;
+
+function getPage(url, callback, proxy){
     var id = DOM.hash(JSON.stringify(url));
     if(pageIndex[id]){
         callback(null, pageIndex[id]);
@@ -158,14 +163,30 @@ function getPage(url, callback){
             }
         }
         function fetch(){
-            log('event', '[WEB FETCHED] '+(url.split('?')[0]), 3);
+            log('event', '[WEB FETCHED] '+id+' '+(url.split('?')[0]), 3);
             var now = Date.now();
-            //setTimeout(function(){
-                request.get( url ,function(error, response, body){
+            var delay = Math.max(now - (lastFetch+fetchDelayInMs), 0);
+            setTimeout(function(){
+                request({
+                    method : 'get',
+                    url : url,
+                    headers : {
+                        'Accept' : 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
+                        'Accept-Encoding' : 'gzip,deflate,sdch',
+                        'Accept-Language' : 'en-US,en;q=0.8',
+                        'Cache-Control' : 'no-cache',
+                        Connection : 'keep-alive',
+                        Host : 'www.aetna.com',
+                        Pragma : 'no-cache',
+                        'User-Agent' : 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_8_4) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/28.0.1500.95 Safari/537.36'
+                    },
+                    jar : j,
+                    proxy : proxy
+                },function(error, response, body){
                     if(!error) save(body);
                     callback(error, body);
                 });
-            //}, Math.max(now - (lastFetch+fetchDelayInMs), 0));
+            }, delay);
             lastFetch = now;
         }
         if(Miner.webcache){
@@ -173,7 +194,6 @@ function getPage(url, callback){
                 if(err) fetch();
                 else{
                     log('event', '[CACHE FETCHED] '+(url.split('?')[0]), 3);
-                    pageIndex[id] = data;
                     callback(null, pageIndex[id]);
                 }
             });
@@ -198,8 +218,6 @@ function Miner(options){
             if(init) init.apply(this, arguments);
         }
         this.definition = definition;
-    }else{
-        
     }
     if(options.complete){
         this.start(options.complete);
@@ -240,6 +258,7 @@ Miner.prototype.start = function(callback){
         var results = [];
         ob.work.forEachEmission(function(job, index, done){
             var vein = new Lode(ob.options, job);
+            vein.proxy = this.proxy;
             console.log('JOB', job);
             vein.mine(job, ob, function(ore){
                 ore.forEach(function(nugget){
@@ -257,6 +276,7 @@ Miner.prototype.start = function(callback){
 }
 
 Miner.log_level = 1;
+
 Miner.prototype.queue = function(options){
     
 }
@@ -299,49 +319,20 @@ Lode.prototype.navigateTo = function(options, callback){
         options.url = url.format(uri);
     }
     //console.log('URL', DOM.hash(options.url));
-    log('event', uri.host+uri.pathname+' page '+(options.page || 1), 2);
+    //log('event', uri.host+uri.pathname+' page '+(options.page || 1), 2);
     var ob = this;
     getPage(options.url, function(error, html){
         DOM(html, function(selector, document, window){
             var newState = new Lode(this);
+            newState.proxy = ob.proxy;
             newState['$'] = selector;
             newState.document = document;
             newState.window = window;
             newState.html = html;
             ob.lastSelector = selector;
-            /*var collectPageData = function(add, getResults, allDone, newOpts, $){
-                options = newOpts?newOpts:options;
-                var url;
-                if(options.next && (url = options.next($||selector, DOM, options.url))){
-                    var opts = clone(options);
-                    opts.url = url;
-                    opts.page = opts.page?opts.page+1:2;
-                    opts.suppress = true;
-                    if(!opts.additional) opts.additional = function additional(nextAdd, nextResults, newDone){
-                        if(opts.additional.opts.url == opts.additional.parentURL) return allDone([]); //more repeating fixes
-                        var res = nextResults();
-                        res.forEach(function(result){
-                            add(result);
-                        })
-                        if(this.lastLength != res.length) collectPageData(add, getResults, allDone, opts.additional.opts, opts.additional.selector);
-                        else allDone([]);
-                        this.lastLength = res.length;
-                    }
-                    opts.additional.opts = opts;
-                    opts.additional.parentURL = options.url;
-                    if(options.url == opts.url){ //fix for repeating last page bug
-                        log('event', 'repeatFix: '+DOM.hash(options.url), 2);
-                        return allDone([]);
-                    }else{
-                        ob.navigateTo(opts, callback);
-                    }
-                }else allDone([]);
-            };
-            (options.additional || collectPageData).selector = selector;*/
-            
             callback(newState);
         });
-    });
+    }, this.proxy);
     }catch(ex){
         console.log('ERROR', ex);
         throw(ex);

@@ -77,8 +77,10 @@ var addReturnUnique = function(ob, list){
     return true;
 }
 
+var clone = require('clone');
+
 module.exports = {
-    combinations : function(data, omit){
+    combinations : function(data, omit){ //[]
         var combinations = {};
         var results = [];
         var noArrays = true;
@@ -88,14 +90,14 @@ module.exports = {
             var item = data[key];
             if(typeof item == 'object'){
                 noArrays = false;
-                //either an id (a range)
+                // either an id (a range)
                 try{
                     if(item.length != 2) throw('array not 2 long, skip to iterator');
                     var lower = parseInt(item[0]);
                     var upper = parseInt(item[1]);
                     for(var lcv=lower; lcv < upper; lcv++){
                         (function(){
-                            var copy = JSON.parse(JSON.stringify(data));
+                            var copy = clone(data);
                             copy[key] = lcv;
                             var combinations = module.exports.combinations(copy, omit);
                             combinations.forEach(function(item){
@@ -103,7 +105,7 @@ module.exports = {
                             });
                         })();
                     }
-                //or a fixed set
+                // or a fixed set
                 }catch(ex){
                     item.forEach(function(value){
                         var copy = JSON.parse(JSON.stringify(data));

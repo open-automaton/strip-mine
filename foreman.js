@@ -43,13 +43,12 @@ Scraper.prototype.scrape = function(options, callback){
         console.log('Subprocess Created');
         ob.workers.push(worker);
         worker.on('message', function(message) {
-            message.worker
-            //console.log('M', message.type, message.data)
+            message.worker;
             if(ob.handlers[message.type]) ob.handlers[message.type].forEach(function(handler){
-                //console.log('M-handle')
                 handler(message.data, message.id);
             });
         });
+        if(ob.options.proxy) optCopy.proxy = ob.options.proxy;
         ob.emitAsync('scrape', optCopy, function(data){
             var index = ob.workers.indexOf(worker)
             if(index) ob.workers.splice(index, 1);
@@ -93,6 +92,3 @@ Scraper.prototype.off = function(event, callback){
     }
 }
 module.exports = Scraper;
-
-
-
