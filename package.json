@@ -1,9 +1,9 @@
 {
     "name": "strip-mine",
-    "homepage": "https://github.com/khrome/strip-mine",
-    "version": "0.0.4-alpha",
-    "main": "strip-mine.js",
-    "description": "A scraping toolkit with normalized syntax for scrape engines, range iteration, distributed processing, caching and memory isolation.",
+    "homepage": "https://github.com/open-automaton/strip-mine",
+    "version": "0.1.0",
+    "main": "index.js",
+    "description": "An Automaton scraping toolkit with normalized syntax for scrape engines, range iteration, distributed processing, caching and memory isolation.",
     "keywords": [
         "scraping",
         "webscraping",
@@ -12,31 +12,20 @@
     "author": "Abbey Hawk Sparrow <@khrome> (http://patternweaver.com)",
     "contributors": [],
     "bugs": {
-        "url": "https://github.com/khrome/strip-mine/issues"
+        "url": "https://github.com/open-automaton/strip-mine/issues"
     },
-    "license": "GPL",
+    "license": "MIT",
     "repository": {
         "type": "git",
-        "url": "git@github.com:khrome/strip-mine.git"
+        "url": "git@github.com:open-automaton/strip-mine.git"
     },
     "dependencies": {
-        "child_process" : "*",
-        "request" : "*",
-        "node-uuid" : "*",
-        "libxmljs" : "*",
-        "querystring" : "*",
-        "commander" : "*",
-        "ascii-art" : "*",
-        "clone":"*"
+        "app-term-kit": "^0.4.2",
+        "divisive": "0.0.2",
+        "range-expansion": "0.0.1"
     },
-    "devDependencies": {
-    },
-    "optionalDependencies": {
-        "cheerio" : "*",
-        "jsdom" : "*",
-        "ncurses":"*",
-        "node-phantom" : "*"
-    },
+    "devDependencies": {},
+    "optionalDependencies": {},
     "engines": {
         "node": "*"
     }
